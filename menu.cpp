@@ -28,7 +28,7 @@ QPoint boss_pile_loc={60,30};
 QPoint boss_pile_siz={141,201};
 QPoint disc_pile_loc={850,410};
 QPoint disc_pile_siz={111,151};
-QPoint show_pile_loc={450,220};
+QPoint show_pile_loc={450,200};
 QPoint show_pile_siz={141,201};
 QPoint hand_loc={250,440};
 QPoint hand_siz={101,141};
@@ -46,7 +46,8 @@ QRect show_pile_rect={show_pile_loc.x(),show_pile_loc.y(),
 QRect atk_pile_rect={140,90,show_pile_siz.x(),show_pile_siz.y()};
 QRect disc_pile_rect={disc_pile_loc.x(),disc_pile_loc.y(),
                         disc_pile_siz.x(),disc_pile_siz.y()};
-QRect boss_die_rect={60,-280,141,201};
+QRect boss_atk_rect={350,330,141,201};
+QRect init_rect={};
 struct Card{
     QLabel *pic;
     int id;
@@ -70,11 +71,15 @@ QHash<QObject*,int> map_of_activeLabel;
 QRect rect_tp;
 QVector<int> idx(1010);
 int is_Ani=0;
-bool sortway=0;
 int seed=0;
 int barMul=100;
 int barWid=501;
 
+bool usejoker=0;
+int killcount=0;
+int helpcount=0;
+int timecount=0;
+bool haveStarted=0;
 QString getQrc(int x){//获取资源文件路径
     QString num=("00"+QString::number(x)).right(2);
     return num;
@@ -96,14 +101,20 @@ ani* shake(QLabel* label,int duration=70, int range=6, int shakeCount=5){
     return an;
 }
 
-ani* ma(QLabel* label,QRect ed,int duration){
+ani* ma(QLabel* label,QRect ed,int duration,QEasingCurve curve=QEasingCurve::OutCubic){
     ani* an=new ani(label,"geometry");
     an->setStartValue(label->geometry());
     an->setEndValue(ed);
     an->setDuration(duration);
-    an->setEasingCurve(QEasingCurve::OutCubic);
+    an->setEasingCurve(curve);
     return an;
 }
+void setOpacity(QLabel *label,double opacity){//设置透明度
+    QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
+    opa->setOpacity(opacity);
+    label->setGraphicsEffect(opa);
+}
+
 ani* wait(int x) {
     ani* an=new ani(handbar[0],"geometry");
     an->setStartValue(handbar[0]->geometry());
@@ -112,6 +123,7 @@ ani* wait(int x) {
     return an;
 }
 void barAnimation(QLabel* label,int aimVal){
+    label->setVisible(true);
     QTimer *timer = new QTimer;
     QObject::connect(timer,&QTimer::timeout,[=](){
         int nowVal=label->text().toInt();
@@ -126,52 +138,69 @@ void barAnimation(QLabel* label,int aimVal){
             timer->deleteLater();
         }
     });
-    timer->start(30);
+    timer->start(20);
 
 }
-void moveAnimation(QLabel* label,QRect ed,int duration){
-    ma(label,ed,duration)->start();
+void moveAnimation(QLabel* label,QRect ed,int duration,QEasingCurve curve=QEasingCurve::OutCubic){
+    ma(label,ed,duration,curve)->start();
 }
-void moveAnimation(QLabel* label,QPoint end,QPoint endsize={-1,-1},int duration=400){//移动动画
+void moveAnimation(QLabel* label,QPoint end,QPoint endsize={-1,-1},int duration=400,QEasingCurve curve=QEasingCurve::OutCubic){//移动动画
     if(endsize.x()==-1) endsize=QPoint(label->width(),label->height());
     QRect ed=QRect(end.x(),end.y(),endsize.x(),endsize.y());
-    moveAnimation(label,ed,duration);
+    moveAnimation(label,ed,duration,curve);
 }
 
 void openCard(QLabel *label,int pictureId){//翻牌动画
-    qDebug()<<"fp st";
     is_Ani++;
-    double wid=label->width(),locx=label->x();
-    double w=wid,x=locx;
-    double aimw=0,aimx=x+wid/2;
-    double step=4;
-    QTimer* timer=new QTimer();
-    QObject::connect(timer,&QTimer::timeout,timer,[=]() mutable{
-        w+=(aimw-w)/step;x+=(aimx-x)/step;
-        label->setGeometry((int)x,label->y(),(int)w,label->height());
-        if(fabs(x-aimx)<1&&fabs(w-aimw)<1){
-            label->setGeometry(aimx,label->y(),aimw,label->height());
-            turnPic(label,pictureId);
-            aimw=wid,aimx=locx;
-            QTimer* timer2=new QTimer();
-            QObject::connect(timer2,&QTimer::timeout,timer,[=]() mutable{
-                w+=(aimw-w)/step;x+=(aimx-x)/step;
-                label->setGeometry((int)x,label->y(),(int)w,label->height());
-                if(fabs(x-aimx)<1&&fabs(w-aimw)<1){
-                    label->setGeometry(aimx,label->y(),aimw,label->height());
-                    is_Ani--;
-                    qDebug()<<"fp ed";
-                    timer2->stop();
-                    timer2->deleteLater();
-                    timer->deleteLater();
-                }
-            });
-            timer2->start(12);
-            timer->stop();
-        }
+    int wid=label->width();
+    int aimw=0,aimx=label->x()+wid/2;
+    QRect startRect=label->geometry();
+    QRect aimRect={aimx,label->y(),aimw,label->height()};
+    auto an=ma(label,aimRect,200,QEasingCurve::InBack);
+    an->start();
+    QObject::connect(an,&QPropertyAnimation::finished,[=](){
+        turnPic(label,pictureId);
+        auto an2=ma(label,startRect,200,QEasingCurve::OutBack);
+        an2->start();
+        QObject::connect(an2,&QPropertyAnimation::finished,[=](){
+            is_Ani--;
+        });
     });
-    timer->start(12);
 }
+void menu::shakeWidget(int duration=50, int range=5, int shakeCount=5){
+    QPropertyAnimation* animation = new QPropertyAnimation(this, "pos");
+    QPoint sp = this->pos();
+    animation->setKeyValueAt(0.1,QPoint(sp.x() + range, sp.y()));
+    animation->setKeyValueAt(0.2,QPoint(sp.x() - range, sp.y()));
+    animation->setKeyValueAt(0.3,QPoint(sp.x(), sp.y() + range));
+    animation->setKeyValueAt(0.4,QPoint(sp.x(), sp.y() - range));
+    animation->setKeyValueAt(0.5, sp);
+    animation->setLoopCount(shakeCount);
+    animation->setEndValue(sp);
+    animation->setDuration(duration);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+}
+
+void fadeLabel(QLabel* label,int duration,float start,float end){//透明度
+    label->setVisible(true);
+    QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
+    label->setGraphicsEffect(opa);
+    QPropertyAnimation* animation = new QPropertyAnimation(opa,"opacity",label);
+    animation->setDuration(duration);
+    animation->setStartValue(start);
+    animation->setEndValue(end);
+    if(end==0){
+        QObject::connect(animation,&QPropertyAnimation::finished,[=](){
+            label->setVisible(false);
+        });
+    }
+
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+
+}
+
 int getPoint(int x){//获取点数
     return (x-1)%13+1;
 }
@@ -217,11 +246,11 @@ QPoint getAimSiz(int player){
 void menu::dealCard(int cardNum,int Player){//发牌
     QTimer* timer=new QTimer;
     int startPlayer=Player;
-    qDebug()<<"deal start";
     is_Ani++;
     connect(timer,&QTimer::timeout,this,[=]() mutable{
         if(!all_full_card() && cardNum && gameCard.size()){
             while(1){
+
                 if((int)handCard[startPlayer].size()<max_of_handcard[player_num]){
                     handCard[startPlayer].push_back(gameCard.back());
                     gameCard.pop_back();
@@ -247,7 +276,6 @@ void menu::dealCard(int cardNum,int Player){//发牌
                             openCard(handCard[me][i].pic,handCard[me][i].id);
                         }
                     }else{
-                        qDebug()<<"deal end";
                         is_Ani--;
                         timer2->stop();
                         timer2->deleteLater();
@@ -264,7 +292,7 @@ void menu::dealCard(int cardNum,int Player){//发牌
 }
 void menu::roundStart(){//boss回合开始
     if(bossCard.size()==0){
-        QMessageBox::information(this,"","Congratulation!");
+
         is_Ani++;
 
         for(int num=1;num<=4;num++)
@@ -293,14 +321,14 @@ void menu::roundStart(){//boss回合开始
             QTimer::singleShot(300,this,[=](){
                 is_Ani--;
 
-
-                setup();
+                gameover(1);
 
             });
         });
         return;
     }
     openCard(bossCard.back().pic,bossCard.back().id);
+    bossCard.back().is_open=1;
     int heal[]={20,30,40};
     int atk[]={10,15,20};
     int x=getPoint(bossCard.back().id)-11;
@@ -321,12 +349,11 @@ void menu::roundStart(){//boss回合开始
 }
 void menu::playerStart(){//玩家回合开始
     if(me==current_player){
-        qDebug()<<"player_start";
         is_Ani--;
         ui->confirmButton->setVisible(true);
         ui->passButton->setVisible(true);
         ui->sortButton->setVisible(true);
-
+        ui->sortButton_2->setVisible(true);
         ui->Joker->setEnabled(true);
         moveAnimation(ui->Joker,Joker_loc,Joker_siz);
     }
@@ -339,35 +366,37 @@ void menu::modifyMyHandCard(){//动态调整手牌
     QVector<int> interval={0,0,180,140, 90,80,70,60,50};
     int n=handCard[me].size();
     ui->handCardBar->setValue(handCard[me].size());
+
     for(int i=0;i<n;i++){
         handCard[me][i].pic->raise();
-        moveAnimation(handCard[me][i].pic,{startLoc[n]-90+i*(interval[n]+10),y},hand_siz,200);
+        moveAnimation(handCard[me][i].pic,{startLoc[n]-90+i*(interval[n]+10),y},hand_siz,250);
     }
-    QTimer::singleShot(200,this,[=](){
+
+    QTimer::singleShot(250,this,[=](){
         is_Ani--;
         ui->passButton->setEnabled(true);
     });
 
 }
 void menu::modifyPlayerCard(int id){//动态调整其他玩家手牌
-    QVector<int> startLoc={530,420,310};
-    int x=40;
-    int interval=20;
-    std::vector<int> temp;
-    for(int i=1;i<=player_num;i++){
-        if(i!=me){
-            temp.push_back(i);
-            if(i==id){
-                int s=temp.size()-1;
-                handbar[s]->setValue(handCard[id].size());
-                for(int j=0;j<(int)handCard[id].size();j++){
-                    handCard[id][j].pic->raise();
-                    moveAnimation(handCard[id][j].pic,{x+j*interval,startLoc[s]},other_hand_siz);
-                }
-                break;
-            }
-        }
-    }
+//    QVector<int> startLoc={530,420,310};
+//    int x=40;
+//    int interval=20;
+//    std::vector<int> temp;
+//    for(int i=1;i<=player_num;i++){
+//        if(i!=me){
+//            temp.push_back(i);
+//            if(i==id){
+//                int s=temp.size()-1;
+//                handbar[s]->setValue(handCard[id].size());
+//                for(int j=0;j<(int)handCard[id].size();j++){
+//                    handCard[id][j].pic->raise();
+//                    moveAnimation(handCard[id][j].pic,{x+j*interval,startLoc[s]},other_hand_siz);
+//                }
+//                break;
+//            }
+//        }
+//    }
 }
 void menu::modifyShowCard(){//动态调整展示出的手牌
     int x=show_pile_loc.x();
@@ -382,59 +411,121 @@ void menu::modifyShowCard(){//动态调整展示出的手牌
 }
 
 QVector<QLabel*> namelabel,backlabel;
-
+void setShadow(QLabel* label,int opacity=127,QPoint dt={3,3},double blurRadius=5) {//设置影子
+    QGraphicsDropShadowEffect *shw = new QGraphicsDropShadowEffect(label);
+    shw->setColor(QColor(0, 0, 0, opacity));
+    shw->setOffset(dt.x(), dt.y());
+    shw->setBlurRadius(blurRadius);
+    label->setGraphicsEffect(shw);
+}
 void menu::init(){//整体初始化
     ac=new AnimationController();
     seed=(unsigned)time(0);
     srand(seed);
-    handbar.append(ui->handbar_2);
-    handbar.append(ui->handbar_3);
-    handbar.append(ui->handbar_4);
-    namelabel.append(ui->name1);
-    namelabel.append(ui->name2);
-    namelabel.append(ui->name3);
-    backlabel.append(ui->back1);
-    backlabel.append(ui->back2);
-    backlabel.append(ui->b);
+    handbar.append(ui->handCardBar);
+//    handbar.append(ui->handbar_3);
+//    handbar.append(ui->handbar_4);
+//    namelabel.append(ui->name1);
+//    namelabel.append(ui->name2);
+//    namelabel.append(ui->name3);
+//    backlabel.append(ui->back1);
+//    backlabel.append(ui->back2);
+//    backlabel.append(ui->b);
     ui->confirmButton->setVisible(false);
     ui->passButton->setVisible(false);
     ui->sortButton->setVisible(false);
+    ui->sortButton_2->setVisible(false);
     ui->defendButton->setVisible(false);
+    ui->gameoverBackground->setVisible(false);
+    //ui->gameoverBackground_2->setVisible(false);
+    ui->killCount->setVisible(false);
+    ui->helpCount->setVisible(false);
+    ui->timeCount->setVisible(false);
+    ui->retryButton->setVisible(false);
+    ui->retryButton_2->setVisible(false);
+    ui->gameoverTitle->setVisible(false);
+    ui->goldenPrice->setVisible(false);
+    ui->heal_label->setVisible(false);
+    ui->att_label->setVisible(false);
+
 
     for(auto i:handbar) i->setMaximum(max_of_handcard[player_num]);
-    for(int i=0;i<3;i++){
-        if(i>=player_num-1){
-            namelabel[i]->setVisible(false);
-            backlabel[i]->setVisible(false);
-            handbar[i]->setVisible(false);
-        }
-    }
+//    for(int i=0;i<3;i++){
+//        if(i>=player_num-1){
+//            namelabel[i]->setVisible(false);
+//            backlabel[i]->setVisible(false);
+//            handbar[i]->setVisible(false);
+//        }
+//    }
     ui->handCardBar->setMaximum(max_of_handcard[player_num]);
+    QRect fst={430,254,
+     show_pile_siz.x(),show_pile_siz.y()};
     for(int i=1;i<=52;i++){
         QLabel *label=new QLabel(this);
         label->setScaledContents(true);
-        label->setGeometry(show_pile_rect);
+        label->setGeometry(fst);
         label->setPixmap(QPixmap(":/image/image/Rigicide_00.png"));
         label->setVisible(true);
         label->raise();
         label->installEventFilter(this);
+        //setShadow(label);
         map_of_activeLabel[label]=i;
         cards[i]=Card(label,i);
     }
     map_of_activeLabel[ui->Joker]=100;
     ui->Joker->installEventFilter(this);
-
 }
 
+QTimer* mainTimer=new QTimer;
 void menu::setup(){//初始化游戏
     is_Ani=1;
     current_player=1;
     roundNum=1;
-    sortway=0;
+    usejoker=0;
+    killcount=0;
+    helpcount=0;
+    timecount=0;
+    connect(mainTimer,&QTimer::timeout,this,[=](){
+        timecount++;
+    });
+    mainTimer->start(1000);
+
     gameCard.clear();
     deadCard.clear();
+    ui->gameoverBackground->setVisible(false);
+    ui->gameoverBackground_2->setVisible(false);
+    ui->killCount->setVisible(false);
+    ui->helpCount->setVisible(false);
+    ui->timeCount->setVisible(false);
+    ui->retryButton->setVisible(false);
+    ui->retryButton_2->setVisible(false);
+    ui->gameoverTitle->setVisible(false);
+    ui->goldenPrice->setVisible(false);
+
+
+
+    ui->gameoverBackground->raise();
+    ui->gameoverBackground_2->raise();
+    ui->gameoverTitle->raise();
+    ui->helpCount->raise();
+    ui->timeCount->raise();
+    ui->killCount->raise();
+    ui->goldenPrice->raise();
+    ui->retryButton->raise();
+    ui->retryButton_2->raise();
+
+    ui->gameoverBackground_2->setGraphicsEffect(nullptr);
+    ui->timeCount->setGraphicsEffect(nullptr);
+    ui->helpCount->setGraphicsEffect(nullptr);
+    ui->killCount->setGraphicsEffect(nullptr);
+
     ui->remainCard->setValue(0);
     ui->remainCard->setMaximum(52);
+    ui->deathCard->setValue(0);
+    ui->handCardBar->setValue(0);
+    ui->Joker->setVisible(true);
+    ui->Joker->setGraphicsEffect(NULL);
+    ui->Joker->setGeometry(hidden_Joker_loc.x(),hidden_Joker_loc.y(),Joker_siz.x(),Joker_siz.y());
     for(int i=1;i<=4;i++) handCard[i].clear();
     bossCard.clear();
     //加入牌堆
@@ -486,7 +577,7 @@ void menu::setup(){//初始化游戏
         }
         i++;
     });
-    timer->start(20);
+    timer->start(30);
 
 
     QTimer* timer2=new QTimer();
@@ -513,20 +604,24 @@ menu::menu(QWidget *parent)
 {
     ui->setupUi(this);
     init();
-    setup();
+    //setup();
 
 }
 
-void menu::click(int id){
+void menu::click(int id,int isLeft){
 
     if(is_Ani) return;
-    if(id==100){//使用Joker
+    if(id==100 && isLeft && !usejoker){//使用Joker
         //屏幕震动,label消失,所有手牌依次翻面,全部进入弃牌堆,发牌
         is_Ani++;
-        ui->Joker->setVisible(false);
+        //ui->Joker->setVisible(false);
+        usejoker=1;
+        fadeLabel(ui->Joker,400,1,0);
+
         ui->confirmButton->setVisible(false);
         ui->passButton->setVisible(false);
         ui->sortButton->setVisible(false);
+        ui->sortButton_2->setVisible(false);
 
         int idx=0,mx=handCard[me].size();
 
@@ -555,32 +650,35 @@ void menu::click(int id){
                 ui->confirmButton->setVisible(true);
                 ui->passButton->setVisible(true);
                 ui->sortButton->setVisible(true);
+                ui->sortButton_2->setVisible(true);
                 is_Ani--;
             });
         });
-
-
-
-
-
         return;
     }
-    for(int i=0;i<(int)showCard.size();i++){
-        if(showCard[i].id==id){
-            showCard.erase(showCard.begin()+i);
-            int x=cards[id].pic->x(),y=hand_loc.y();
-            moveAnimation(cards[id].pic,{x,y},hand_siz,200);
-            return;
+    if(isLeft){//选中/取消选择
+        for(int i=0;i<(int)showCard.size();i++){
+            if(showCard[i].id==id){
+                showCard.erase(showCard.begin()+i);
+                int x=cards[id].pic->x(),y=hand_loc.y();
+                moveAnimation(cards[id].pic,{x,y},hand_siz,200,QEasingCurve::OutBack);
+                return;
+            }
         }
-    }
-    for(int i=0;i<(int)handCard[me].size();i++){
-        if(handCard[me][i].id==id){
-            showCard.push_back(cards[id]);
-            int x=cards[id].pic->x(),y=hand_loc.y()-40;
-            moveAnimation(cards[id].pic,{x,y},hand_siz,200);
-            break;
+        for(int i=0;i<(int)handCard[me].size();i++){
+            if(handCard[me][i].id==id){
+                showCard.push_back(cards[id]);
+                int x=cards[id].pic->x(),y=hand_loc.y()-40;
+                moveAnimation(cards[id].pic,{x,y},hand_siz,200,QEasingCurve::OutBack);
+                break;
+            }
         }
+    }else{//取消全部
+        showCard.clear();
+        modifyMyHandCard();
+
     }
+
 
 }
 void menu::move(int id){
@@ -588,7 +686,7 @@ void menu::move(int id){
     if(id==100){//使用Joker
         QPoint pt=Joker_loc;
         pt.setY(pt.y()-10);
-        moveAnimation(ui->Joker,pt,Joker_siz,100);
+        moveAnimation(ui->Joker,pt,Joker_siz,100,QEasingCurve::OutBack);
         return;
     }
     for(int i=0;i<(int)showCard.size();i++){
@@ -598,7 +696,7 @@ void menu::move(int id){
     for(int i=0;i<(int)handCard[me].size();i++){
         if(handCard[me][i].id==id){
             int x=handCard[me][i].pic->x(),y=hand_loc.y()-20;
-            moveAnimation(handCard[me][i].pic,{x,y},hand_siz,100);
+            moveAnimation(handCard[me][i].pic,{x,y},hand_siz,100,QEasingCurve::OutBack);
             break;
         }
     }
@@ -624,10 +722,35 @@ void menu::leave(int id){
 
 }
 
+void menu::initAnimation(){
+    fadeLabel(ui->bg,1000,1,0);
+    fadeLabel(ui->maintitle,1000,1,0);
+    fadeLabel(ui->gameoverBackground_2,1000,1,0);
+    QRect tp=ui->gameoverBackground_2->geometry();
+    tp.setWidth(0);
+    moveAnimation(ui->gameoverBackground_2,tp,800);
+    QTimer::singleShot(1500,this,[=](){
+       setup();
+    });
+
+
+}
 bool menu::eventFilter(QObject *obj, QEvent *event){
     int id=map_of_activeLabel[obj];//对象下标
     if (event->type() == QEvent::MouseButtonPress) {
-        click(id);
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        if (mouseEvent->buttons() == Qt::LeftButton){
+            if(haveStarted){
+                click(id,1);
+                qDebug()<<id;
+            }else{
+                haveStarted=1;
+                initAnimation();
+            }
+
+        }else if (mouseEvent->buttons() == Qt::RightButton){
+            click(id,0);
+        }
     }else if (event->type() == QEvent::Enter) {
         move(id);
     } else if (event->type() == QEvent::Leave) {
@@ -667,17 +790,16 @@ void menu::cure(int x){//治疗
 }
 //单独卡牌计算
 void menu::CaculateCard(int card_id,int val,int flag){
+
     int point=val;
     int suit=getSuit(card_id);
     int bossSuit=getSuit(bossCard.back().id);
-
     if(flag==0){
         //结算花色
         if(suit!=bossSuit){
             //0-梅花，1-方片，2-红桃，3-黑桃
             auto sk=shake(cards[card_id].pic,50,20,5);
             ac->addAnimation(sk);
-            qDebug()<<"shake";
             if(suit==0){
                 for(auto i:showCard){
                     CaculateCard(i.id,getAttack(i.id),1);
@@ -705,90 +827,193 @@ void menu::CaculateCard(int card_id,int val,int flag){
                     int x=getPoint(bossCard.back().id)-11;
                     rect_tp=ui->att->geometry();
                     rect_tp.setWidth((int)((1.0*bossAtk/atk[x]) *barWid));
-                    moveAnimation(ui->att,rect_tp,200);
+                    moveAnimation(ui->att,rect_tp,400,QEasingCurve::OutBack);
                     barAnimation(ui->att_label,bossAtk);
 
                 });
                 ac->addAnimation(wait(200));
             }
-            ac->addAnimation(wait(300));
+            ac->addAnimation(wait(200));
 
         }
     }else{
-        //攻击
         bossHealth-=point;
-        auto ai=ma(cards[card_id].pic,atk_pile_rect,150);
+        auto ai=ma(cards[card_id].pic,atk_pile_rect,200,QEasingCurve::InBack);
+        connect(ai,&QPropertyAnimation::finished,this,[=](){
+            shakeWidget();
+        });
         ac->addAnimation(ai);
         int h=bossHealth;
-        QObject::connect(ai,&QPropertyAnimation::finished,[=](){
+        connect(ai,&QPropertyAnimation::finished,this,[=](){
             int heal[]={20,30,40};
             int x=getPoint(bossCard.back().id)-11;
             rect_tp=ui->health->geometry();
             rect_tp.setWidth((int)((1.0*h/heal[x]) *barWid));
-            moveAnimation(ui->health,rect_tp,200);
+            moveAnimation(ui->health,rect_tp,200,QEasingCurve::OutBack);
             barAnimation(ui->heal_label,h);
         });
         ac->addAnimation(ma(cards[card_id].pic,cards[card_id].pic->geometry(),150));
-        ac->addAnimation(wait(500));
+        ac->addAnimation(wait(400));
+
     }
 
 
 
-
 }
-
+void menu::receive_attack(){
+    bossCard.back().pic->raise();
+    auto ai=ma(bossCard.back().pic,boss_atk_rect,400,QEasingCurve::InBack);
+    connect(ai,&QPropertyAnimation::finished,this,[=](){
+        shakeWidget();
+    });
+    ai->start();
+    connect(ai,&QPropertyAnimation::finished,this,[=](){
+        moveAnimation(bossCard.back().pic,boss_pile_loc,boss_pile_siz,300);
+    });
+}
 void menu::defend(){//收到伤害
     int sum=0;
     for(auto i:showCard){
         sum+=getAttack(i.id);
     }
     if(sum>=bossAtk){
-        qDebug()<<"receive ATK";
         is_Ani++;
-        for(int j=0;j<(int)showCard.size();j++){
-            for(int i=handCard[current_player].size()-1;i>=0;i--){//删除手牌
-                if(handCard[current_player][i].id==showCard[j].id){
-                    deadCard.push_back(showCard[j]);
-                    ui->deathCard->setValue(deadCard.size());
-                    handCard[current_player].erase(handCard[current_player].begin()+i);
-                    break;
+        receive_attack();
+        QTimer::singleShot(500,this,[=](){
+            for(int j=0;j<(int)showCard.size();j++){
+                for(int i=handCard[current_player].size()-1;i>=0;i--){//删除手牌
+                    if(handCard[current_player][i].id==showCard[j].id){
+                        deadCard.push_back(showCard[j]);
+                        ui->deathCard->setValue(deadCard.size());
+                        handCard[current_player].erase(handCard[current_player].begin()+i);
+                        break;
+                    }
                 }
             }
-        }
-        for(auto i:showCard){
-            openCard(i.pic,0);
-            i.is_open=0;
-        }
-        QTimer::singleShot(500,[=](){
-
-            qDebug()<<"receive ATK end";
             for(auto i:showCard){
-                moveAnimation(i.pic,disc_pile_loc,disc_pile_siz);
+                openCard(i.pic,0);
+                i.is_open=0;
             }
-            modifyMyHandCard();//调整手牌
-            ui->defendButton->setVisible(false);
+            QTimer::singleShot(500,this,[=](){
 
-            current_player=(current_player)%player_num+1;
-            showCard.clear();
-            playerStart();
+                for(auto i:showCard){
+                    moveAnimation(i.pic,disc_pile_loc,disc_pile_siz);
+                }
+                modifyMyHandCard();//调整手牌
+                ui->defendButton->setVisible(false);
+
+                current_player=(current_player)%player_num+1;
+                showCard.clear();
+                playerStart();
+            });
         });
-
     }
 
 }
 void menu::defendMode(){
-
-    ui->defendButton->setVisible(true);
-    ui->sortButton->setVisible(true);
     ui->confirmButton->setVisible(false);
-    ui->passButton->setVisible(true);
-
+    ui->passButton->setVisible(false);
     ui->Joker->setEnabled(false);
     moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
 
+    int sum=0;
+    for(auto i:handCard[me]) sum+=getAttack(i.id);
+    if(bossAtk>sum){//游戏结束
+        //gameoverBackground 淡出,title淡出,红色背景从左到右,统计项目从下至上,奖杯淡出,重试按钮淡出
+        bossCard.back().pic->raise();
+        auto ai=ma(bossCard.back().pic,boss_atk_rect,700,QEasingCurve::InBack);
+        connect(ai,&QPropertyAnimation::finished,this,[=](){
+            shakeWidget();
+        });
+        ai->start();
+        gameover(0);
+    }else{
+        ui->defendButton->setVisible(true);
+        ui->sortButton->setVisible(true);
+        ui->sortButton_2->setVisible(true);
+    }
 
 }
+void menu::gameover(bool isWin){
+    mainTimer->stop();
+    ui->sortButton->setVisible(false);
+    ui->sortButton_2->setVisible(false);
+    if(isWin){
+        ui->gameoverTitle->setText("游戏胜利");
+        if(usejoker){
+            ui->goldenPrice->setText("🏅");
+        }else{
+            ui->goldenPrice->setText("🏆");
+        }
+    }else{
+        ui->gameoverTitle->setText("游戏结束");
+        ui->goldenPrice->setText("🪦");
+    }
+    ui->killCount->setText("⚔️  "+QString::number(killcount)+"/12");
+    ui->helpCount->setText("🤝  "+QString::number(helpcount)+"/12");
+    int hours = timecount / 3600;
+    int minutes = (timecount % 3600) / 60;
+    int seconds = timecount % 60;
+    QString timeString = QString("%1:%2:%3")
+                            .arg(hours, 2, 10, QLatin1Char('0'))
+                            .arg(minutes, 2, 10, QLatin1Char('0'))
+                            .arg(seconds, 2, 10, QLatin1Char('0'));
+    ui->timeCount->setText("⏱️ "+timeString);
 
+
+    QTimer::singleShot(700,this,[=](){
+        ui->gameoverBackground->raise();
+        ui->gameoverBackground_2->raise();
+        ui->gameoverTitle->raise();
+        ui->helpCount->raise();
+        ui->timeCount->raise();
+        ui->killCount->raise();
+        ui->goldenPrice->raise();
+        ui->retryButton->raise();
+        ui->retryButton_2->raise();
+        fadeLabel(ui->gameoverBackground,500,0,1);
+        QTimer::singleShot(150,this,[=](){
+            fadeLabel(ui->gameoverTitle,500,0,1);
+            QTimer::singleShot(250,this,[=](){
+
+                QRect aimRect=ui->gameoverBackground_2->geometry();
+                aimRect.setWidth(1001);
+                QRect rt=aimRect;rt.setWidth(0);
+                ui->gameoverBackground_2->setGeometry(rt);
+                ui->gameoverBackground_2->setGraphicsEffect(NULL);
+                ui->gameoverBackground_2->setVisible(true);
+                moveAnimation(ui->gameoverBackground_2,aimRect,500);
+
+                QRect waiting_rect={0,660,1001,71};
+                QTimer::singleShot(550,this,[=](){
+                    QRect kill_rect={0,250,1001,71};
+                    ui->killCount->setGeometry(waiting_rect);
+                    ui->killCount->setVisible(true);
+                    moveAnimation(ui->killCount,kill_rect,600,QEasingCurve::OutBack);
+                });
+                QTimer::singleShot(950,this,[=](){
+                    ui->helpCount->setGeometry(waiting_rect);
+                    ui->helpCount->setVisible(true);
+                    QRect help_rect={0,320,1001,71};
+                    moveAnimation(ui->helpCount,help_rect,600,QEasingCurve::OutBack);
+                });
+                QTimer::singleShot(1350,this,[=](){
+                    ui->timeCount->setGeometry(waiting_rect);
+                    ui->timeCount->setVisible(true);
+                    QRect time_rect={0,390,1001,71};
+                    moveAnimation(ui->timeCount,time_rect,600,QEasingCurve::OutBack);
+                });
+                QTimer::singleShot(1950,this,[=](){
+                    fadeLabel(ui->goldenPrice,400,0,1);
+                    ui->goldenPrice->setVisible(true);
+                    if(isWin) ui->retryButton->setVisible(true);
+                    else ui->retryButton_2->setVisible(true);
+                });
+
+            });
+        });
+    });
+}
 void menu::attack(){
     //移动到展示区->造成伤害->抽牌->结算效果
     is_Ani++;
@@ -802,6 +1027,7 @@ void menu::attack(){
                 }
             }
         }
+
         modifyMyHandCard();//调整手牌
         for(int i=0;i<player_num-1;i++)
             modifyPlayerCard(i);
@@ -815,6 +1041,7 @@ void menu::attack(){
                 if(i==0 || (getSuit(showCard[i].id)!=getSuit(showCard[i-1].id)))
                     CaculateCard(showCard[i].id,sum,0);
             }
+
             for(auto i:showCard){
                 CaculateCard(i.id,getAttack(i.id),1);
                 i.is_open=false;
@@ -825,6 +1052,7 @@ void menu::attack(){
             connect(ac,&AnimationController::finished,this,[=](){
                 for (auto i:showCard) {
                     openCard(i.pic, 0);
+                    i.is_open=0;
                 }
                 QTimer::singleShot(500,this,[=](){
                     for(auto i:showCard){
@@ -834,6 +1062,8 @@ void menu::attack(){
                     }
                     showCard.clear();
                     if(bossHealth==0){//荣誉击杀->boss加入gameCard
+                        killcount++;
+                        helpcount++;
                         auto m=ma(bossCard.back().pic,draw_pile_rect,400);
                         connect(m,&QPropertyAnimation::finished,this,[=](){
                             current_player=(current_player)%player_num+1;
@@ -841,19 +1071,21 @@ void menu::attack(){
                             roundStart();
                         });
 
-                        gameCard.push_back(bossCard.back());
+
                         openCard(bossCard.back().pic,0);
                         bossCard.back().is_open=0;
+                        gameCard.push_back(bossCard.back());
                         for(auto i:gameCard) i.pic->raise();
                         bossCard.pop_back();
 
-                        QTimer::singleShot(500,[=](){
+                        QTimer::singleShot(500,this,[=](){
                             ui->remainCard->setValue(gameCard.size());
                             m->start();
 
                         });
                     }
                     else if(bossHealth<0){//击杀->boss刷新，轮到下家回合
+                        killcount++;
                         auto m=ma(bossCard.back().pic,disc_pile_rect,400);
                         connect(m,&QPropertyAnimation::finished,this,[=](){
                             current_player=(current_player)%player_num+1;
@@ -861,11 +1093,12 @@ void menu::attack(){
                             roundStart();
                         });
 
-                        deadCard.push_back(bossCard.back());
+
                         openCard(bossCard.back().pic,0);
                         bossCard.back().is_open=0;
+                        deadCard.push_back(bossCard.back());
                         bossCard.pop_back();
-                        QTimer::singleShot(500,[=](){
+                        QTimer::singleShot(500,this,[=](){
                             ui->deathCard->setValue(deadCard.size());
                             m->start();
                         });
@@ -910,6 +1143,7 @@ void menu::on_confirmButton_clicked()
         ui->confirmButton->setVisible(false);
         ui->passButton->setVisible(false);
         ui->sortButton->setVisible(false);
+        ui->sortButton_2->setVisible(false);
         ui->Joker->setEnabled(false);
         moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
         //is_Ani=1;
@@ -920,24 +1154,23 @@ void menu::on_confirmButton_clicked()
 }
 
 
-
 void menu::on_sortButton_clicked()
 {
-
     showCard.clear();
-    if(sortway==1){
-        std::sort(handCard[me].begin(),handCard[me].end(),[&](Card a,Card b){
-            return a.id<b.id;
-        });
-        modifyMyHandCard();
-    }else{
-        std::sort(handCard[me].begin(),handCard[me].end(),[&](Card a,Card b){
-            if(getPoint(a.id)==getPoint(b.id)) return a.id<b.id;
-            return getPoint(a.id)<getPoint(b.id);
-        });
-        modifyMyHandCard();
-    }
-    sortway^=1;
+    std::sort(handCard[me].begin(),handCard[me].end(),[&](Card a,Card b){
+        return a.id<b.id;
+    });
+
+    modifyMyHandCard();
+}
+void menu::on_sortButton_2_clicked()
+{
+    showCard.clear();
+    std::sort(handCard[me].begin(),handCard[me].end(),[&](Card a,Card b){
+        if(getPoint(a.id)==getPoint(b.id)) return a.id<b.id;
+        return getPoint(a.id)<getPoint(b.id);
+    });
+    modifyMyHandCard();
 }
 
 
@@ -949,12 +1182,72 @@ void menu::on_defendButton_clicked()
 
 void menu::on_passButton_clicked()
 {
-
+    if(is_Ani) return;
     if(bossAtk>0)
         defendMode();
     else{
         current_player=(current_player)%player_num+1;
         playerStart();
     }
+}
+
+
+
+
+void menu::on_retryButton_clicked()
+{
+    fadeLabel(ui->gameoverBackground,400,1,0);
+    fadeLabel(ui->gameoverBackground_2,400,1,0);
+    fadeLabel(ui->gameoverTitle,400,1,0);
+    fadeLabel(ui->helpCount,400,1,0);
+    fadeLabel(ui->killCount,400,1,0);
+    fadeLabel(ui->timeCount,400,1,0);
+    fadeLabel(ui->goldenPrice,400,1,0);
+    ui->retryButton->setVisible(false);
+    QTimer::singleShot(500,this,[=](){
+        setup();
+    });
+}
+
+
+void menu::on_retryButton_2_clicked()
+{
+    fadeLabel(ui->gameoverBackground,400,1,0);
+    fadeLabel(ui->gameoverBackground_2,400,1,0);
+    fadeLabel(ui->gameoverTitle,400,1,0);
+    fadeLabel(ui->helpCount,400,1,0);
+    fadeLabel(ui->killCount,400,1,0);
+    fadeLabel(ui->timeCount,400,1,0);
+    fadeLabel(ui->goldenPrice,400,1,0);
+    ui->retryButton_2->setVisible(false);
+    QTimer::singleShot(500,this,[=](){
+        is_Ani++;
+        for(int num=1;num<=4;num++)
+            for(auto i:handCard[num]){
+                if(i.is_open) openCard(i.pic,0);
+                i.is_open=false;
+            }
+        for(auto i:showCard){
+            if(i.is_open) openCard(i.pic,0);
+            i.is_open=false;
+        }
+        for(auto i:bossCard){
+            if(i.is_open) openCard(i.pic,0);
+            i.is_open=false;
+        }
+        for(auto i:gameCard){
+            if(i.is_open) openCard(i.pic,0);
+            i.is_open=false;
+        }
+        QTimer::singleShot(1000,this,[=](){
+            for(int i=1;i<=52;i++){
+                moveAnimation(cards[i].pic,show_pile_rect,200);
+            }
+            QTimer::singleShot(300,this,[=](){
+                is_Ani--;
+                setup();
+            });
+        });
+    });
 }
 

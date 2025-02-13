@@ -37,6 +37,11 @@ public:
     void CaculateCard(int card_id, int val, int flag);
     void defend();
     void defendMode();
+    void shakeWidget(int duration, int range, int shakeCount);
+    void click(int id, int isLeft);
+    void receive_attack();
+    void gameover(bool isWin);
+    void initAnimation();
 private slots:
     void on_confirmButton_clicked();
 
@@ -46,6 +51,12 @@ private slots:
     void on_defendButton_clicked();
 
     void on_passButton_clicked();
+
+    void on_sortButton_2_clicked();
+
+    void on_retryButton_clicked();
+
+    void on_retryButton_2_clicked();
 
 private:
     Ui::menu *ui;

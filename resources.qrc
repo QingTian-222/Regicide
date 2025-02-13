@@ -56,5 +56,6 @@
         <file>image/Rigicide_53.png</file>
         <file>image/Rigicide_54.png</file>
         <file>image/Joker.png</file>
+        <file>image/title.png</file>
     </qresource>
 </RCC>

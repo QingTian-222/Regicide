@@ -10,6 +10,18 @@
     <height>641</height>
    </rect>
   </property>
+  <property name="minimumSize">
+   <size>
+    <width>1001</width>
+    <height>641</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1001</width>
+    <height>641</height>
+   </size>
+  </property>
   <property name="windowTitle">
    <string>Regicide</string>
   </property>
@@ -156,10 +168,10 @@ border-radius:12px;
   <widget class="QLabel" name="mudi">
    <property name="geometry">
     <rect>
-     <x>885</x>
-     <y>384</y>
+     <x>884</x>
+     <y>382</y>
      <width>61</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="palette">
@@ -191,8 +203,8 @@ border-radius:12px;
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
-     <pointsize>14</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -204,15 +216,15 @@ border-radius:12px;
    <property name="geometry">
     <rect>
      <x>860</x>
-     <y>360</y>
+     <y>359</y>
      <width>91</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
-     <pointsize>11</pointsize>
+     <family>Consolas</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -229,8 +241,9 @@ border-radius:12px;
 }
 QProgressBar::chunk {
 
-        background: rgb(0,210, 0);
-}</string>
+        background: rgb(0,200, 0);
+}
+</string>
    </property>
    <property name="maximum">
     <number>52</number>
@@ -260,10 +273,10 @@ QProgressBar::chunk {
   <widget class="QLabel" name="jiuguan">
    <property name="geometry">
     <rect>
-     <x>887</x>
-     <y>173</y>
+     <x>884</x>
+     <y>172</y>
      <width>61</width>
-     <height>21</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="palette">
@@ -295,8 +308,8 @@ QProgressBar::chunk {
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
-     <pointsize>14</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -308,15 +321,15 @@ QProgressBar::chunk {
    <property name="geometry">
     <rect>
      <x>860</x>
-     <y>570</y>
+     <y>569</y>
      <width>91</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
-     <pointsize>11</pointsize>
+     <family>Consolas</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -337,6 +350,9 @@ QProgressBar::chunk {
         background: rgb(230,170, 0);
 }
 </string>
+   </property>
+   <property name="minimum">
+    <number>0</number>
    </property>
    <property name="maximum">
     <number>52</number>
@@ -401,7 +417,7 @@ QProgressBar::chunk {
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
+     <family>字心坊李林哥特体简体中文</family>
      <pointsize>14</pointsize>
      <bold>true</bold>
     </font>
@@ -414,16 +430,17 @@ QProgressBar::chunk {
    <property name="geometry">
     <rect>
      <x>240</x>
-     <y>594</y>
+     <y>593</y>
      <width>91</width>
-     <height>20</height>
+     <height>21</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <family>微软雅黑</family>
-     <pointsize>11</pointsize>
+     <family>Consolas</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
+     <kerning>true</kerning>
     </font>
    </property>
    <property name="autoFillBackground">
@@ -471,14 +488,15 @@ QProgressBar::chunk {
    <property name="geometry">
     <rect>
      <x>710</x>
-     <y>470</y>
+     <y>660</y>
      <width>111</width>
      <height>41</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>12</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -490,14 +508,15 @@ QProgressBar::chunk {
    <property name="geometry">
     <rect>
      <x>710</x>
-     <y>530</y>
+     <y>660</y>
      <width>111</width>
      <height>41</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>12</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>16</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -509,33 +528,35 @@ QProgressBar::chunk {
    <property name="geometry">
     <rect>
      <x>380</x>
-     <y>594</y>
+     <y>660</y>
      <width>101</width>
-     <height>24</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>14</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="text">
-    <string>按花色排序</string>
+    <string>花色排序</string>
    </property>
   </widget>
   <widget class="QPushButton" name="defendButton">
    <property name="geometry">
     <rect>
      <x>710</x>
-     <y>500</y>
+     <y>660</y>
      <width>111</width>
      <height>41</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>12</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>18</pointsize>
      <bold>true</bold>
     </font>
    </property>
@@ -635,7 +656,7 @@ border-radius:10px;</string>
    <property name="geometry">
     <rect>
      <x>300</x>
-     <y>50</y>
+     <y>46</y>
      <width>501</width>
      <height>51</height>
     </rect>
@@ -669,8 +690,8 @@ border-radius:10px;</string>
    </property>
    <property name="font">
     <font>
-     <family>Consolas</family>
-     <pointsize>26</pointsize>
+     <family>Ancient</family>
+     <pointsize>43</pointsize>
      <bold>false</bold>
     </font>
    </property>
@@ -685,7 +706,7 @@ border-radius:10px;</string>
    <property name="geometry">
     <rect>
      <x>300</x>
-     <y>100</y>
+     <y>99</y>
      <width>501</width>
      <height>51</height>
     </rect>
@@ -719,8 +740,8 @@ border-radius:10px;</string>
    </property>
    <property name="font">
     <font>
-     <family>Consolas</family>
-     <pointsize>18</pointsize>
+     <family>Ancient</family>
+     <pointsize>21</pointsize>
      <bold>false</bold>
     </font>
    </property>
@@ -754,19 +775,20 @@ border-radius:10px;</string>
    <property name="geometry">
     <rect>
      <x>490</x>
-     <y>594</y>
+     <y>660</y>
      <width>101</width>
-     <height>24</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="font">
     <font>
-     <pointsize>10</pointsize>
-     <bold>true</bold>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>14</pointsize>
+     <bold>false</bold>
     </font>
    </property>
    <property name="text">
-    <string>按点数排序</string>
+    <string>点数排序</string>
    </property>
   </widget>
   <widget class="QLabel" name="gameoverBackground">
@@ -823,7 +845,7 @@ border-radius:10px;</string>
    </property>
    <property name="font">
     <font>
-     <family>华文新魏</family>
+     <family>字心坊李林哥特体简体中文</family>
      <pointsize>100</pointsize>
     </font>
    </property>
@@ -874,6 +896,7 @@ border-radius:10px;</string>
     <font>
      <family>方正姚体</family>
      <pointsize>28</pointsize>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -940,6 +963,7 @@ border-radius:10px;</string>
     <font>
      <family>方正姚体</family>
      <pointsize>28</pointsize>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -989,6 +1013,7 @@ border-radius:10px;</string>
     <font>
      <family>方正姚体</family>
      <pointsize>28</pointsize>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -1009,8 +1034,9 @@ border-radius:10px;</string>
    </property>
    <property name="font">
     <font>
-     <family>华文新魏</family>
-     <pointsize>26</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>28</pointsize>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -1046,8 +1072,9 @@ border-radius:10px;</string>
    </property>
    <property name="font">
     <font>
-     <family>华文新魏</family>
-     <pointsize>26</pointsize>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>28</pointsize>
+     <bold>true</bold>
     </font>
    </property>
    <property name="text">
@@ -1089,13 +1116,587 @@ border-radius:10px;</string>
     <bool>true</bool>
    </property>
   </widget>
+  <widget class="QPushButton" name="aboutButton">
+   <property name="geometry">
+    <rect>
+     <x>130</x>
+     <y>520</y>
+     <width>131</width>
+     <height>81</height>
+    </rect>
+   </property>
+   <property name="palette">
+    <palette>
+     <active>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </active>
+     <inactive>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </inactive>
+     <disabled>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </disabled>
+    </palette>
+   </property>
+   <property name="font">
+    <font>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>36</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 248, 197);</string>
+   </property>
+   <property name="text">
+    <string>关于</string>
+   </property>
+   <property name="default">
+    <bool>false</bool>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="ruleButton">
+   <property name="geometry">
+    <rect>
+     <x>330</x>
+     <y>520</y>
+     <width>131</width>
+     <height>81</height>
+    </rect>
+   </property>
+   <property name="palette">
+    <palette>
+     <active>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </active>
+     <inactive>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </inactive>
+     <disabled>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </disabled>
+    </palette>
+   </property>
+   <property name="font">
+    <font>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>36</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 248, 197);</string>
+   </property>
+   <property name="text">
+    <string>规则</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="exitButton">
+   <property name="geometry">
+    <rect>
+     <x>730</x>
+     <y>520</y>
+     <width>131</width>
+     <height>81</height>
+    </rect>
+   </property>
+   <property name="palette">
+    <palette>
+     <active>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </active>
+     <inactive>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </inactive>
+     <disabled>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </disabled>
+    </palette>
+   </property>
+   <property name="font">
+    <font>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>36</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 248, 197);</string>
+   </property>
+   <property name="text">
+    <string>退出</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="scoreButton">
+   <property name="geometry">
+    <rect>
+     <x>530</x>
+     <y>520</y>
+     <width>131</width>
+     <height>81</height>
+    </rect>
+   </property>
+   <property name="palette">
+    <palette>
+     <active>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </active>
+     <inactive>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </inactive>
+     <disabled>
+      <colorrole role="WindowText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="Text">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="ButtonText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="255">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+      <colorrole role="PlaceholderText">
+       <brush brushstyle="SolidPattern">
+        <color alpha="128">
+         <red>255</red>
+         <green>248</green>
+         <blue>197</blue>
+        </color>
+       </brush>
+      </colorrole>
+     </disabled>
+    </palette>
+   </property>
+   <property name="font">
+    <font>
+     <family>字心坊李林哥特体简体中文</family>
+     <pointsize>36</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">color: rgb(255, 248, 197);</string>
+   </property>
+   <property name="text">
+    <string>多人</string>
+   </property>
+   <property name="flat">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <zorder>gameoverTitle</zorder>
+  <zorder>gameoverBackground</zorder>
   <zorder>retryButton_2</zorder>
   <zorder>goldenPrice</zorder>
-  <zorder>timeCount</zorder>
   <zorder>killCount</zorder>
   <zorder>helpCount</zorder>
-  <zorder>gameoverBackground</zorder>
-  <zorder>gameoverTitle</zorder>
   <zorder>label</zorder>
   <zorder>table</zorder>
   <zorder>bossToken</zorder>
@@ -1122,9 +1723,14 @@ border-radius:10px;</string>
   <zorder>Joker</zorder>
   <zorder>sortButton_2</zorder>
   <zorder>retryButton</zorder>
+  <zorder>timeCount</zorder>
   <zorder>bg</zorder>
-  <zorder>maintitle</zorder>
+  <zorder>ruleButton</zorder>
+  <zorder>aboutButton</zorder>
+  <zorder>exitButton</zorder>
   <zorder>gameoverBackground_2</zorder>
+  <zorder>maintitle</zorder>
+  <zorder>scoreButton</zorder>
  </widget>
  <resources>
   <include location="resources.qrc"/>

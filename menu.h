@@ -58,6 +58,14 @@ private slots:
 
     void on_retryButton_2_clicked();
 
+    void on_aboutButton_clicked();
+
+    void on_exitButton_clicked();
+
+    void on_ruleButton_clicked();
+
+    void on_scoreButton_clicked();
+
 private:
     Ui::menu *ui;
 };

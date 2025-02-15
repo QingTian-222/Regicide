@@ -10,6 +10,7 @@
 #include "QVector"
 #include<deque>
 #include <QPropertyAnimation>
+#include<QFontDatabase>
 #include "animationcontroller.h"
 #include "tanimation.h"
 typedef TAnimation ani;
@@ -30,7 +31,7 @@ QPoint disc_pile_loc={850,410};
 QPoint disc_pile_siz={111,151};
 QPoint show_pile_loc={450,200};
 QPoint show_pile_siz={141,201};
-QPoint hand_loc={250,440};
+QPoint hand_loc={250,440-10};
 QPoint hand_siz={101,141};
 QPoint other_hand_siz={41,55};
 
@@ -109,6 +110,19 @@ ani* ma(QLabel* label,QRect ed,int duration,QEasingCurve curve=QEasingCurve::Out
     an->setEasingCurve(curve);
     return an;
 }
+void button_ma(QPushButton* label,QPoint st,QPoint ed,int duration,int flag,QEasingCurve curve=QEasingCurve::OutCubic){
+    QPoint aimSt={label->x(),label->y()};
+    label->setEnabled(flag);
+    label->setVisible(true);
+    ani* an=new ani(label,"pos");
+    an->setStartValue(aimSt);
+    an->setEndValue(ed);
+    an->setDuration(duration);
+    an->setEasingCurve(curve);
+    an->start();
+}
+
+
 void setOpacity(QLabel *label,double opacity){//设置透明度
     QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
     opa->setOpacity(opacity);
@@ -183,6 +197,24 @@ void menu::shakeWidget(int duration=50, int range=5, int shakeCount=5){
 }
 
 void fadeLabel(QLabel* label,int duration,float start,float end){//透明度
+    label->setVisible(true);
+    QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
+    label->setGraphicsEffect(opa);
+    QPropertyAnimation* animation = new QPropertyAnimation(opa,"opacity",label);
+    animation->setDuration(duration);
+    animation->setStartValue(start);
+    animation->setEndValue(end);
+    if(end==0){
+        QObject::connect(animation,&QPropertyAnimation::finished,[=](){
+            label->setVisible(false);
+        });
+    }
+
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+
+}
+void fadeLabel(QPushButton* label,int duration,float start,float end){//透明度
     label->setVisible(true);
     QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
     label->setGraphicsEffect(opa);
@@ -349,19 +381,46 @@ void menu::roundStart(){//boss回合开始
 }
 void menu::playerStart(){//玩家回合开始
     if(me==current_player){
-        is_Ani--;
-        ui->confirmButton->setVisible(true);
-        ui->passButton->setVisible(true);
-        ui->sortButton->setVisible(true);
-        ui->sortButton_2->setVisible(true);
+        //如果我没有手牌且敌方攻击力为0,判负
+        if(!bossCard.size()) return;
+        if(handCard[me].size()==0 && bossAtk==0 && usejoker){
+            gameover(0);
+            return;
+        }
+        //如果我没有手牌且没有Joker,判负
+        if(handCard[me].size()==0 && usejoker){
+            bossCard.back().pic->raise();
+            QTimer::singleShot(400,this,[=](){
+                auto ai=ma(bossCard.back().pic,boss_atk_rect,700,QEasingCurve::InBack);
+                connect(ai,&QPropertyAnimation::finished,this,[=](){
+                    shakeWidget();
+                });
+                ai->start();
+                gameover(0);
+            });
+
+            return;
+        }
+
+        qDebug()<<bossAtk;
+        if(bossAtk){
+            button_ma(ui->passButton,{710,660},{710,530},600,1,QEasingCurve::OutBack);
+        }
+        button_ma(ui->confirmButton,{710,660},{710,470},600,1,QEasingCurve::OutBack);
+        button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
+
+
         ui->Joker->setEnabled(true);
         moveAnimation(ui->Joker,Joker_loc,Joker_siz);
+
+
     }
 }
 void menu::modifyMyHandCard(){//动态调整手牌
     ui->passButton->setEnabled(false);
     is_Ani++;
-    int y=440;
+    int y=hand_loc.y();
     QVector<int> startLoc={0,450,360,300,270,260,250,245,240};
     QVector<int> interval={0,0,180,140, 90,80,70,60,50};
     int n=handCard[me].size();
@@ -448,6 +507,13 @@ void menu::init(){//整体初始化
     ui->heal_label->setVisible(false);
     ui->att_label->setVisible(false);
 
+    ui->bg->raise();
+    ui->maintitle->raise();
+    ui->gameoverBackground_2->raise();
+    ui->aboutButton->raise();
+    ui->exitButton->raise();
+    ui->ruleButton->raise();
+    ui->scoreButton->raise();
 
     for(auto i:handbar) i->setMaximum(max_of_handcard[player_num]);
 //    for(int i=0;i<3;i++){
@@ -458,8 +524,7 @@ void menu::init(){//整体初始化
 //        }
 //    }
     ui->handCardBar->setMaximum(max_of_handcard[player_num]);
-    QRect fst={430,254,
-     show_pile_siz.x(),show_pile_siz.y()};
+    QRect fst={430,254,show_pile_siz.x(),show_pile_siz.y()};
     for(int i=1;i<=52;i++){
         QLabel *label=new QLabel(this);
         label->setScaledContents(true);
@@ -469,6 +534,7 @@ void menu::init(){//整体初始化
         label->raise();
         label->installEventFilter(this);
         //setShadow(label);
+        label->setCursor(Qt::PointingHandCursor);
         map_of_activeLabel[label]=i;
         cards[i]=Card(label,i);
     }
@@ -539,7 +605,15 @@ void menu::setup(){//初始化游戏
     std::sort(bossCard.begin(),bossCard.end(),[&](Card a,Card b){
         return getPoint(a.id)>getPoint(b.id);
     });
-    shuffle(gameCard,0,gameCard.size()-1);
+    while(1){
+        shuffle(gameCard,0,gameCard.size()-1);
+        int sm=0;
+        for(int i=gameCard.size()-1,j=0;j<8;i--,j++){
+            if(getSuit(gameCard[i].id)==1) sm+=getAttack(gameCard[i].id);
+        }
+        if(sm>=8) break;
+    }
+
     do{
         shuffle(bossCard,0,3);
         shuffle(bossCard,4,7);
@@ -570,7 +644,9 @@ void menu::setup(){//初始化游戏
             QTimer::singleShot(300,this,[=](){
                 dealCard(player_num*max_of_handcard[player_num],1);
                 QTimer::singleShot(1500,this,[=](){
+                    is_Ani--;
                     roundStart();
+
                     playerStart();
                 });
             });
@@ -602,7 +678,12 @@ menu::menu(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::menu)
 {
+
+
+    QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath()+"/font.ttf");
+    QFontDatabase::addApplicationFont(QCoreApplication::applicationDirPath()+"/font2.ttf");
     ui->setupUi(this);
+
     init();
     //setup();
 
@@ -618,10 +699,11 @@ void menu::click(int id,int isLeft){
         usejoker=1;
         fadeLabel(ui->Joker,400,1,0);
 
-        ui->confirmButton->setVisible(false);
-        ui->passButton->setVisible(false);
-        ui->sortButton->setVisible(false);
-        ui->sortButton_2->setVisible(false);
+
+        button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+        button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
 
         int idx=0,mx=handCard[me].size();
 
@@ -629,6 +711,7 @@ void menu::click(int id,int isLeft){
 
         connect(timer,&QTimer::timeout,this,[=]() mutable{
             openCard(handCard[me][idx].pic,0);
+            handCard[me][idx].is_open=0;
             deadCard.push_back(handCard[me][idx]);
             int nw=deadCard.size();
             QTimer::singleShot(700,this,[=](){
@@ -646,11 +729,11 @@ void menu::click(int id,int isLeft){
         QTimer::singleShot(waitTime,this,[=](){
             handCard[me].clear();
             dealCard(8,1);
-            QTimer::singleShot(800,this,[=](){
-                ui->confirmButton->setVisible(true);
-                ui->passButton->setVisible(true);
-                ui->sortButton->setVisible(true);
-                ui->sortButton_2->setVisible(true);
+            QTimer::singleShot(1600,this,[=](){
+                button_ma(ui->passButton,{710,660},{710,530},600,1,QEasingCurve::OutBack);
+                button_ma(ui->confirmButton,{710,660},{710,470},600,1,QEasingCurve::OutBack);
+                button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
+                button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
                 is_Ani--;
             });
         });
@@ -726,6 +809,10 @@ void menu::initAnimation(){
     fadeLabel(ui->bg,1000,1,0);
     fadeLabel(ui->maintitle,1000,1,0);
     fadeLabel(ui->gameoverBackground_2,1000,1,0);
+    fadeLabel(ui->aboutButton,1000,1,0);
+    fadeLabel(ui->ruleButton,1000,1,0);
+    fadeLabel(ui->exitButton,1000,1,0);
+    fadeLabel(ui->scoreButton,1000,1,0);
     QRect tp=ui->gameoverBackground_2->geometry();
     tp.setWidth(0);
     moveAnimation(ui->gameoverBackground_2,tp,800);
@@ -840,7 +927,7 @@ void menu::CaculateCard(int card_id,int val,int flag){
         bossHealth-=point;
         auto ai=ma(cards[card_id].pic,atk_pile_rect,200,QEasingCurve::InBack);
         connect(ai,&QPropertyAnimation::finished,this,[=](){
-            shakeWidget();
+            if(point>=7) shakeWidget();
         });
         ac->addAnimation(ai);
         int h=bossHealth;
@@ -864,7 +951,7 @@ void menu::receive_attack(){
     bossCard.back().pic->raise();
     auto ai=ma(bossCard.back().pic,boss_atk_rect,400,QEasingCurve::InBack);
     connect(ai,&QPropertyAnimation::finished,this,[=](){
-        shakeWidget();
+        if(bossAtk>=10) shakeWidget();
     });
     ai->start();
     connect(ai,&QPropertyAnimation::finished,this,[=](){
@@ -873,11 +960,14 @@ void menu::receive_attack(){
 }
 void menu::defend(){//收到伤害
     int sum=0;
+
     for(auto i:showCard){
         sum+=getAttack(i.id);
     }
     if(sum>=bossAtk){
         is_Ani++;
+        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
         receive_attack();
         QTimer::singleShot(500,this,[=](){
             for(int j=0;j<(int)showCard.size();j++){
@@ -900,10 +990,11 @@ void menu::defend(){//收到伤害
                     moveAnimation(i.pic,disc_pile_loc,disc_pile_siz);
                 }
                 modifyMyHandCard();//调整手牌
-                ui->defendButton->setVisible(false);
+                button_ma(ui->defendButton,{710,500},{710,660},600,0,QEasingCurve::OutBack);
 
                 current_player=(current_player)%player_num+1;
                 showCard.clear();
+                is_Ani--;
                 playerStart();
             });
         });
@@ -911,8 +1002,8 @@ void menu::defend(){//收到伤害
 
 }
 void menu::defendMode(){
-    ui->confirmButton->setVisible(false);
-    ui->passButton->setVisible(false);
+
+
     ui->Joker->setEnabled(false);
     moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
 
@@ -928,16 +1019,20 @@ void menu::defendMode(){
         ai->start();
         gameover(0);
     }else{
-        ui->defendButton->setVisible(true);
-        ui->sortButton->setVisible(true);
-        ui->sortButton_2->setVisible(true);
+        button_ma(ui->defendButton,{710,660},{710,500},600,1,QEasingCurve::OutBack);
+
+        button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
     }
 
 }
 void menu::gameover(bool isWin){
     mainTimer->stop();
-    ui->sortButton->setVisible(false);
-    ui->sortButton_2->setVisible(false);
+    button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+    button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
+    button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+    button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+
     if(isWin){
         ui->gameoverTitle->setText("游戏胜利");
         if(usejoker){
@@ -1067,8 +1162,10 @@ void menu::attack(){
                         auto m=ma(bossCard.back().pic,draw_pile_rect,400);
                         connect(m,&QPropertyAnimation::finished,this,[=](){
                             current_player=(current_player)%player_num+1;
-                            playerStart();
+                            is_Ani--;
                             roundStart();
+                            playerStart();
+
                         });
 
 
@@ -1089,8 +1186,10 @@ void menu::attack(){
                         auto m=ma(bossCard.back().pic,disc_pile_rect,400);
                         connect(m,&QPropertyAnimation::finished,this,[=](){
                             current_player=(current_player)%player_num+1;
-                            playerStart();
+                            is_Ani--;
                             roundStart();
+                            playerStart();
+
                         });
 
 
@@ -1108,6 +1207,7 @@ void menu::attack(){
                             defendMode();
                         }else{
                             current_player=(current_player)%player_num+1;
+                            is_Ani--;
                             playerStart();
                         }
                     }
@@ -1140,10 +1240,14 @@ void menu::on_confirmButton_clicked()
 
     if(n==1||(n>1 && all_the_same && sum<=10)||(n==2 && have1)){//普通攻击
         attack();
-        ui->confirmButton->setVisible(false);
-        ui->passButton->setVisible(false);
-        ui->sortButton->setVisible(false);
-        ui->sortButton_2->setVisible(false);
+
+        button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+        button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+
+        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
+
+
         ui->Joker->setEnabled(false);
         moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
         //is_Ani=1;
@@ -1183,9 +1287,12 @@ void menu::on_defendButton_clicked()
 void menu::on_passButton_clicked()
 {
     if(is_Ani) return;
-    if(bossAtk>0)
+    if(bossAtk>0){
+        button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+        button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+
         defendMode();
-    else{
+    }else{
         current_player=(current_player)%player_num+1;
         playerStart();
     }
@@ -1249,5 +1356,31 @@ void menu::on_retryButton_2_clicked()
             });
         });
     });
+}
+
+
+void menu::on_aboutButton_clicked()
+{
+    QMessageBox::information(this,"开发者","游戏名:REGICIDE弑君者\n"
+                                             "程序化:青天零云\n"
+                                                "当前版本完成时间:2025/2/15");
+}
+
+
+void menu::on_exitButton_clicked()
+{
+    QApplication::quit();
+}
+
+
+void menu::on_ruleButton_clicked()
+{
+    QMessageBox::information(this,"咕咕咕","敬请期待");
+}
+
+
+void menu::on_scoreButton_clicked()
+{
+    QMessageBox::information(this,"咕咕咕","敬请期待");
 }
 

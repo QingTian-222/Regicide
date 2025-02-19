@@ -16,10 +16,6 @@ public:
     menu(QWidget *parent = nullptr);
     ~menu();
 
-
-
-//    bool eventFilter(QObject* object, QEvent* event);
-
     void setup();
     void dealCard(int cardNum, int Player);
     void init();
@@ -42,6 +38,12 @@ public:
     void receive_attack();
     void gameover(bool isWin);
     void initAnimation();
+    void extendWidget(int w, int h);
+    void connect_server(QString name, QString ip, QString room);
+    void confirm();
+    void df();
+    void gov(bool isWin);
+    void RTB();
 private slots:
     void on_confirmButton_clicked();
 
@@ -65,6 +67,10 @@ private slots:
     void on_ruleButton_clicked();
 
     void on_scoreButton_clicked();
+
+    void on_connect_clicked();
+
+    void on_startOnline_clicked();
 
 private:
     Ui::menu *ui;

@@ -13,6 +13,7 @@
 #include<QFontDatabase>
 #include "animationcontroller.h"
 #include "tanimation.h"
+#include <QTcpSocket>
 typedef TAnimation ani;
 
 int player_num=1;//游戏人数
@@ -22,6 +23,7 @@ int me=1;
 
 int max_of_handcard[]={0,8,7,6,5};
 int num_of_joker[]={0,0,0,1,2};
+
 
 QPoint draw_pile_loc={850,200};
 QPoint draw_pile_siz={111,151};
@@ -33,9 +35,9 @@ QPoint show_pile_loc={450,200};
 QPoint show_pile_siz={141,201};
 QPoint hand_loc={250,440-10};
 QPoint hand_siz={101,141};
-QPoint other_hand_siz={41,55};
+QPoint other_hand_siz={41,61};
 
-QPoint hidden_Joker_loc={1010,40};
+QPoint hidden_Joker_loc={860,-100};
 QPoint Joker_loc={860,40};
 
 QPoint Joker_siz={91,91};
@@ -71,16 +73,25 @@ QHash<QObject*,int> map_of_activeLabel;
 
 QRect rect_tp;
 QVector<int> idx(1010);
-int is_Ani=0;
-int seed=0;
-int barMul=100;
+int is_Ani=0;//动画中
+int seed=0;//随机种子
 int barWid=501;
 
-bool usejoker=0;
-int killcount=0;
-int helpcount=0;
-int timecount=0;
-bool haveStarted=0;
+bool usejoker=0;//使用了Joker(单机模式)
+int killcount=0;//击杀首领统计
+int helpcount=0;//归化首领统计
+int timecount=0;//总时间
+bool haveStarted=0;//是否开始游戏
+bool isMulti=0;//多人模式
+QTcpSocket *socket;
+
+QGroupBox* playerGroupBox[4];
+QLabel* playerName[4];
+QLabel* playerBg[4];
+QLabel* pn[4];
+
+bool bossWeak=0;
+
 QString getQrc(int x){//获取资源文件路径
     QString num=("00"+QString::number(x)).right(2);
     return num;
@@ -101,7 +112,12 @@ ani* shake(QLabel* label,int duration=70, int range=6, int shakeCount=5){
     an->setDuration(duration);
     return an;
 }
-
+QByteArray send(QString head,QString content){
+    QString hd=head+content;
+    QString len="000"+QString::number(hd.toUtf8().size()+3);
+    hd=len.right(3)+hd;
+    return hd.toUtf8();
+}
 ani* ma(QLabel* label,QRect ed,int duration,QEasingCurve curve=QEasingCurve::OutCubic){
     ani* an=new ani(label,"geometry");
     an->setStartValue(label->geometry());
@@ -121,7 +137,6 @@ void button_ma(QPushButton* label,QPoint st,QPoint ed,int duration,int flag,QEas
     an->setEasingCurve(curve);
     an->start();
 }
-
 
 void setOpacity(QLabel *label,double opacity){//设置透明度
     QGraphicsOpacityEffect* opa=new QGraphicsOpacityEffect(label);
@@ -229,11 +244,10 @@ void fadeLabel(QPushButton* label,int duration,float start,float end){//透明�
     }
 
     animation->start(QAbstractAnimation::DeleteWhenStopped);
-
-
 }
 
 int getPoint(int x){//获取点数
+    if(x==53||x==54) return 0;
     return (x-1)%13+1;
 }
 int getAttack(int x){
@@ -323,6 +337,7 @@ void menu::dealCard(int cardNum,int Player){//发牌
     timer->start(100);
 }
 void menu::roundStart(){//boss回合开始
+    bossWeak=0;
     if(bossCard.size()==0){
 
         is_Ani++;
@@ -410,9 +425,13 @@ void menu::playerStart(){//玩家回合开始
         button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
         button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
 
+        if(isMulti){
 
-        ui->Joker->setEnabled(true);
-        moveAnimation(ui->Joker,Joker_loc,Joker_siz);
+        }else{
+            ui->Joker->setEnabled(true);
+            moveAnimation(ui->Joker,Joker_loc,Joker_siz);
+        }
+
 
 
     }
@@ -438,24 +457,23 @@ void menu::modifyMyHandCard(){//动态调整手牌
 
 }
 void menu::modifyPlayerCard(int id){//动态调整其他玩家手牌
-//    QVector<int> startLoc={530,420,310};
-//    int x=40;
-//    int interval=20;
-//    std::vector<int> temp;
-//    for(int i=1;i<=player_num;i++){
-//        if(i!=me){
-//            temp.push_back(i);
-//            if(i==id){
-//                int s=temp.size()-1;
-//                handbar[s]->setValue(handCard[id].size());
-//                for(int j=0;j<(int)handCard[id].size();j++){
-//                    handCard[id][j].pic->raise();
-//                    moveAnimation(handCard[id][j].pic,{x+j*interval,startLoc[s]},other_hand_siz);
-//                }
-//                break;
-//            }
-//        }
-//    }
+    int locy[5];
+
+    locy[(me+2)%player_num+1]=510;
+    locy[(me+1)%player_num+1]=300;
+    locy[(me)%player_num+1]=90;
+
+
+    int inv[8]={0,0,-50,-46,-46,-33,-30,-24};
+    int locx[8]={0,1104,1130,1150,1174,1176,1176,1178};
+
+
+    int n=handCard[id].size();
+    for(int j=0;j<n;j++){
+        handCard[id][j].pic->raise();
+        moveAnimation(handCard[id][j].pic,{locx[n]+inv[n]*j,locy[id]},other_hand_siz);
+    }
+
 }
 void menu::modifyShowCard(){//动态调整展示出的手牌
     int x=show_pile_loc.x();
@@ -465,31 +483,33 @@ void menu::modifyShowCard(){//动态调整展示出的手牌
     QVector<int> start={x,x-w/2,x-w,x-3*w/2};
     int interval=w+10;
     for(int i=0;i<n;i++){
+        turnPic(showCard[i].pic,showCard[i].id);
         moveAnimation(showCard[i].pic,{start[n-1]+interval*i,y},show_pile_siz);
     }
 }
 
 QVector<QLabel*> namelabel,backlabel;
-void setShadow(QLabel* label,int opacity=127,QPoint dt={3,3},double blurRadius=5) {//设置影子
-    QGraphicsDropShadowEffect *shw = new QGraphicsDropShadowEffect(label);
-    shw->setColor(QColor(0, 0, 0, opacity));
-    shw->setOffset(dt.x(), dt.y());
-    shw->setBlurRadius(blurRadius);
-    label->setGraphicsEffect(shw);
-}
+
 void menu::init(){//整体初始化
     ac=new AnimationController();
-    seed=(unsigned)time(0);
-    srand(seed);
     handbar.append(ui->handCardBar);
-//    handbar.append(ui->handbar_3);
-//    handbar.append(ui->handbar_4);
-//    namelabel.append(ui->name1);
-//    namelabel.append(ui->name2);
-//    namelabel.append(ui->name3);
-//    backlabel.append(ui->back1);
-//    backlabel.append(ui->back2);
-//    backlabel.append(ui->b);
+
+    playerGroupBox[0]=ui->playergroup1;
+    playerGroupBox[1]=ui->playergroup2;
+    playerGroupBox[2]=ui->playergroup3;
+    playerGroupBox[3]=ui->playergroup4;
+    playerName[0]=ui->playername1;
+    playerName[1]=ui->playername2;
+    playerName[2]=ui->playername3;
+    playerName[3]=ui->playername4;
+    playerBg[0]=ui->playerbg1;
+    playerBg[1]=ui->playerbg2;
+    playerBg[2]=ui->playerbg3;
+    playerBg[3]=ui->playerbg4;
+    pn[1]=ui->pn1;
+    pn[2]=ui->pn2;
+    pn[3]=ui->pn3;
+
     ui->confirmButton->setVisible(false);
     ui->passButton->setVisible(false);
     ui->sortButton->setVisible(false);
@@ -497,6 +517,7 @@ void menu::init(){//整体初始化
     ui->defendButton->setVisible(false);
     ui->gameoverBackground->setVisible(false);
     //ui->gameoverBackground_2->setVisible(false);
+    ui->startOnline->setVisible(false);
     ui->killCount->setVisible(false);
     ui->helpCount->setVisible(false);
     ui->timeCount->setVisible(false);
@@ -506,7 +527,8 @@ void menu::init(){//整体初始化
     ui->goldenPrice->setVisible(false);
     ui->heal_label->setVisible(false);
     ui->att_label->setVisible(false);
-
+    ui->multiplayer->setGeometry({0,240,0,231});
+    ui->multiplayer_2->setGeometry({0,240,0,231});
     ui->bg->raise();
     ui->maintitle->raise();
     ui->gameoverBackground_2->raise();
@@ -523,9 +545,9 @@ void menu::init(){//整体初始化
 //            handbar[i]->setVisible(false);
 //        }
 //    }
-    ui->handCardBar->setMaximum(max_of_handcard[player_num]);
+
     QRect fst={430,254,show_pile_siz.x(),show_pile_siz.y()};
-    for(int i=1;i<=52;i++){
+    for(int i=1;i<=54;i++){
         QLabel *label=new QLabel(this);
         label->setScaledContents(true);
         label->setGeometry(fst);
@@ -551,6 +573,8 @@ void menu::setup(){//初始化游戏
     killcount=0;
     helpcount=0;
     timecount=0;
+    seed=(unsigned)time(0);
+    srand(seed);
     connect(mainTimer,&QTimer::timeout,this,[=](){
         timecount++;
     });
@@ -595,11 +619,20 @@ void menu::setup(){//初始化游戏
     for(int i=1;i<=4;i++) handCard[i].clear();
     bossCard.clear();
     //加入牌堆
-    for(int i=1;i<=52;i++){
+
+    int total[5]={0,52,52,53,54};
+    for(int i=1;i<=54;i++){
+
         cards[i].is_open=false;
         if(getPoint(i)>10) bossCard.push_back(cards[i]);
         else gameCard.push_back(cards[i]);
+        if(i>total[player_num])
+            cards[i].pic->setVisible(false);
+
     }
+
+
+
 
     //洗牌
     std::sort(bossCard.begin(),bossCard.end(),[&](Card a,Card b){
@@ -691,7 +724,7 @@ menu::menu(QWidget *parent)
 
 void menu::click(int id,int isLeft){
 
-    if(is_Ani) return;
+    if(is_Ani || current_player!=me) return;
     if(id==100 && isLeft && !usejoker){//使用Joker
         //屏幕震动,label消失,所有手牌依次翻面,全部进入弃牌堆,发牌
         is_Ani++;
@@ -765,7 +798,7 @@ void menu::click(int id,int isLeft){
 
 }
 void menu::move(int id){
-    if(is_Ani) return;
+    if(is_Ani || current_player!=me) return;
     if(id==100){//使用Joker
         QPoint pt=Joker_loc;
         pt.setY(pt.y()-10);
@@ -785,7 +818,7 @@ void menu::move(int id){
     }
 }
 void menu::leave(int id){
-    if(is_Ani) return;
+    if(is_Ani || current_player!=me) return;
     if(id==100){//使用Joker
         QPoint pt=Joker_loc;
         moveAnimation(ui->Joker,pt,Joker_siz,100);
@@ -809,14 +842,29 @@ void menu::initAnimation(){
     fadeLabel(ui->bg,1000,1,0);
     fadeLabel(ui->maintitle,1000,1,0);
     fadeLabel(ui->gameoverBackground_2,1000,1,0);
-    fadeLabel(ui->aboutButton,1000,1,0);
-    fadeLabel(ui->ruleButton,1000,1,0);
-    fadeLabel(ui->exitButton,1000,1,0);
-    fadeLabel(ui->scoreButton,1000,1,0);
+
     QRect tp=ui->gameoverBackground_2->geometry();
     tp.setWidth(0);
     moveAnimation(ui->gameoverBackground_2,tp,800);
+    if(isMulti){
+        ui->multiplayer->setVisible(false);
+        ani* an=new ani(ui->multiplayer_2,"size",ui->multiplayer);
+        an->setDuration(600);
+        an->setEndValue(QSize(0,231));
+        an->setEasingCurve(QEasingCurve::OutCubic);
+        an->start();
+        if(me==1) fadeLabel(ui->startOnline,200,1,0);
+    }else{
+        fadeLabel(ui->aboutButton,1000,1,0);
+        fadeLabel(ui->ruleButton,1000,1,0);
+        fadeLabel(ui->exitButton,1000,1,0);
+        fadeLabel(ui->scoreButton,1000,1,0);
+
+    }
     QTimer::singleShot(1500,this,[=](){
+        if(isMulti){
+            extendWidget(1251,641);
+        }
        setup();
     });
 
@@ -882,8 +930,12 @@ void menu::CaculateCard(int card_id,int val,int flag){
     int suit=getSuit(card_id);
     int bossSuit=getSuit(bossCard.back().id);
     if(flag==0){
+        if(getPoint(card_id)==0){
+            bossWeak=1;
+            return;
+        }
         //结算花色
-        if(suit!=bossSuit){
+        if(suit!=bossSuit || bossWeak){
             //0-梅花，1-方片，2-红桃，3-黑桃
             auto sk=shake(cards[card_id].pic,50,20,5);
             ac->addAnimation(sk);
@@ -924,6 +976,8 @@ void menu::CaculateCard(int card_id,int val,int flag){
 
         }
     }else{
+
+
         bossHealth-=point;
         auto ai=ma(cards[card_id].pic,atk_pile_rect,200,QEasingCurve::InBack);
         connect(ai,&QPropertyAnimation::finished,this,[=](){
@@ -949,7 +1003,19 @@ void menu::CaculateCard(int card_id,int val,int flag){
 }
 void menu::receive_attack(){
     bossCard.back().pic->raise();
-    auto ai=ma(bossCard.back().pic,boss_atk_rect,400,QEasingCurve::InBack);
+
+    QRect aim;
+    if(me==current_player){
+        aim=boss_atk_rect;
+    }else{
+        QRect locy[5];
+        locy[(me+2)%player_num+1]=ui->player3->geometry();
+        locy[(me+1)%player_num+1]=ui->player2->geometry();
+        locy[(me)%player_num+1]=ui->player1->geometry();
+        aim=locy[current_player];
+    }
+
+    auto ai=ma(bossCard.back().pic,aim,400,QEasingCurve::InBack);
     connect(ai,&QPropertyAnimation::finished,this,[=](){
         if(bossAtk>=10) shakeWidget();
     });
@@ -958,6 +1024,54 @@ void menu::receive_attack(){
         moveAnimation(bossCard.back().pic,boss_pile_loc,boss_pile_siz,300);
     });
 }
+
+void menu::df(){
+    is_Ani++;
+    if(me==current_player){
+        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
+    }else{
+        for(auto i:showCard){
+            openCard(i.pic,i.id);
+            i.is_open=1;
+        }
+    }
+
+    receive_attack();
+    QTimer::singleShot(800,this,[=](){
+        for(int j=0;j<(int)showCard.size();j++){
+            for(int i=handCard[current_player].size()-1;i>=0;i--){//删除手牌
+                if(handCard[current_player][i].id==showCard[j].id){
+                    deadCard.push_back(showCard[j]);
+                    ui->deathCard->setValue(deadCard.size());
+                    handCard[current_player].erase(handCard[current_player].begin()+i);
+                    break;
+                }
+            }
+        }
+        for(auto i:showCard){
+
+            openCard(i.pic,0);
+            i.is_open=0;
+        }
+        QTimer::singleShot(500,this,[=](){
+
+            for(auto i:showCard){
+                moveAnimation(i.pic,disc_pile_loc,disc_pile_siz);
+            }
+
+            if(me==current_player)modifyMyHandCard();//调整手牌
+            else modifyPlayerCard(current_player);
+            if(me==current_player) button_ma(ui->defendButton,{710,500},{710,660},600,0,QEasingCurve::OutBack);
+
+            current_player=(current_player)%player_num+1;
+            showCard.clear();
+            is_Ani--;
+            playerStart();
+        });
+    });
+}
+
 void menu::defend(){//收到伤害
     int sum=0;
 
@@ -965,47 +1079,31 @@ void menu::defend(){//收到伤害
         sum+=getAttack(i.id);
     }
     if(sum>=bossAtk){
-        is_Ani++;
-        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
-        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
-        receive_attack();
-        QTimer::singleShot(500,this,[=](){
-            for(int j=0;j<(int)showCard.size();j++){
-                for(int i=handCard[current_player].size()-1;i>=0;i--){//删除手牌
-                    if(handCard[current_player][i].id==showCard[j].id){
-                        deadCard.push_back(showCard[j]);
-                        ui->deathCard->setValue(deadCard.size());
-                        handCard[current_player].erase(handCard[current_player].begin()+i);
-                        break;
-                    }
-                }
+        if(isMulti){
+            QString res="";
+            for(int i=0;i<(int)showCard.size();i++){
+                res+=QString::number(showCard[i].id);
+                if(i!=(int)showCard.size()-1) res+=',';
             }
-            for(auto i:showCard){
-                openCard(i.pic,0);
-                i.is_open=0;
-            }
-            QTimer::singleShot(500,this,[=](){
+            socket->write(send("DEF",res));
+        }else{
+            df();
+        }
 
-                for(auto i:showCard){
-                    moveAnimation(i.pic,disc_pile_loc,disc_pile_siz);
-                }
-                modifyMyHandCard();//调整手牌
-                button_ma(ui->defendButton,{710,500},{710,660},600,0,QEasingCurve::OutBack);
 
-                current_player=(current_player)%player_num+1;
-                showCard.clear();
-                is_Ani--;
-                playerStart();
-            });
-        });
+
     }
 
 }
 void menu::defendMode(){
 
+    if(isMulti){
 
-    ui->Joker->setEnabled(false);
-    moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
+    }else{
+        ui->Joker->setEnabled(false);
+        moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
+    }
+
 
     int sum=0;
     for(auto i:handCard[me]) sum+=getAttack(i.id);
@@ -1019,14 +1117,17 @@ void menu::defendMode(){
         ai->start();
         gameover(0);
     }else{
-        button_ma(ui->defendButton,{710,660},{710,500},600,1,QEasingCurve::OutBack);
+        if(me==current_player){
+            button_ma(ui->defendButton,{710,660},{710,500},600,1,QEasingCurve::OutBack);
 
-        button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
-        button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
+            button_ma(ui->sortButton,{380,660},{380,587},800,1,QEasingCurve::OutBack);
+            button_ma(ui->sortButton_2,{490,660},{490,587},800,1,QEasingCurve::OutBack);
+        }
+
     }
 
 }
-void menu::gameover(bool isWin){
+void menu::gov(bool isWin){
     mainTimer->stop();
     button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
     button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
@@ -1101,13 +1202,27 @@ void menu::gameover(bool isWin){
                 QTimer::singleShot(1950,this,[=](){
                     fadeLabel(ui->goldenPrice,400,0,1);
                     ui->goldenPrice->setVisible(true);
-                    if(isWin) ui->retryButton->setVisible(true);
-                    else ui->retryButton_2->setVisible(true);
+                    if(me==1){
+                        if(isWin) ui->retryButton->setVisible(true);
+                        else ui->retryButton_2->setVisible(true);
+                    }
+
                 });
 
             });
         });
     });
+}
+
+void menu::gameover(bool isWin){
+    if(isMulti){
+        int t=isWin;
+        socket->write(send("GOV",QString::number(t)));
+    }else{
+        gov(isWin);
+    }
+
+
 }
 void menu::attack(){
     //移动到展示区->造成伤害->抽牌->结算效果
@@ -1123,9 +1238,10 @@ void menu::attack(){
             }
         }
 
-        modifyMyHandCard();//调整手牌
-        for(int i=0;i<player_num-1;i++)
-            modifyPlayerCard(i);
+        if(me==current_player) modifyMyHandCard();//调整手牌
+        else modifyPlayerCard(current_player);
+
+
         QTimer::singleShot(400,this,[=](){//伤害动画
             int sum=0;
             for(auto i:showCard) sum+=getAttack(i.id);
@@ -1224,8 +1340,7 @@ void menu::attack(){
 
 }
 
-void menu::on_confirmButton_clicked()
-{
+void menu::confirm(){
     int n=showCard.size();
     if(!n) return;
     bool all_the_same=1,have1=0;
@@ -1239,22 +1354,39 @@ void menu::on_confirmButton_clicked()
     }
 
     if(n==1||(n>1 && all_the_same && sum<=10)||(n==2 && have1)){//普通攻击
-        attack();
+        if(isMulti){
+            QString res="";
+            for(int i=0;i<(int)showCard.size();i++){
+                res+=QString::number(showCard[i].id);
+                if(i!=(int)showCard.size()-1) res+=',';
+            }
+            socket->write(send("SHW",res));
+        }else{
+            attack();
+            button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+            button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
 
-        button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
-        button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+            button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+            button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
 
-        button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
-        button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
+            if(!isMulti){
+                ui->Joker->setEnabled(false);
+                moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
+            }
+        }
 
 
-        ui->Joker->setEnabled(false);
-        moveAnimation(ui->Joker,hidden_Joker_loc,Joker_siz);
-        //is_Ani=1;
+
+
+
     }else{
         return;
     }
+}
 
+void menu::on_confirmButton_clicked()
+{
+    confirm();
 }
 
 
@@ -1303,22 +1435,24 @@ void menu::on_passButton_clicked()
 
 void menu::on_retryButton_clicked()
 {
-    fadeLabel(ui->gameoverBackground,400,1,0);
-    fadeLabel(ui->gameoverBackground_2,400,1,0);
-    fadeLabel(ui->gameoverTitle,400,1,0);
-    fadeLabel(ui->helpCount,400,1,0);
-    fadeLabel(ui->killCount,400,1,0);
-    fadeLabel(ui->timeCount,400,1,0);
-    fadeLabel(ui->goldenPrice,400,1,0);
-    ui->retryButton->setVisible(false);
-    QTimer::singleShot(500,this,[=](){
-        setup();
-    });
+    if(isMulti){
+        socket->write(send("RTA",""));
+    }else{
+        fadeLabel(ui->gameoverBackground,400,1,0);
+        fadeLabel(ui->gameoverBackground_2,400,1,0);
+        fadeLabel(ui->gameoverTitle,400,1,0);
+        fadeLabel(ui->helpCount,400,1,0);
+        fadeLabel(ui->killCount,400,1,0);
+        fadeLabel(ui->timeCount,400,1,0);
+        fadeLabel(ui->goldenPrice,400,1,0);
+        ui->retryButton->setVisible(false);
+        QTimer::singleShot(500,this,[=](){
+            setup();
+        });
+    }
+
 }
-
-
-void menu::on_retryButton_2_clicked()
-{
+void menu::RTB(){
     fadeLabel(ui->gameoverBackground,400,1,0);
     fadeLabel(ui->gameoverBackground_2,400,1,0);
     fadeLabel(ui->gameoverTitle,400,1,0);
@@ -1358,6 +1492,13 @@ void menu::on_retryButton_2_clicked()
     });
 }
 
+void menu::on_retryButton_2_clicked()
+{
+    if(isMulti){
+        socket->write(send("RTB",""));
+    }else RTB();
+}
+
 
 void menu::on_aboutButton_clicked()
 {
@@ -1375,12 +1516,204 @@ void menu::on_exitButton_clicked()
 
 void menu::on_ruleButton_clicked()
 {
-    QMessageBox::information(this,"咕咕咕","敬请期待");
+    //extendWidget(1251,641);
+}
+void menu::extendWidget(int w,int h){
+    ani* an=new ani(this,"size");
+    an->setEndValue(QSize(w,h));
+    an->setEasingCurve(QEasingCurve::OutBounce);
+    an->setDuration(1000);
+    an->start();
+
 }
 
 
 void menu::on_scoreButton_clicked()
 {
-    QMessageBox::information(this,"咕咕咕","敬请期待");
+    isMulti^=1;
+    if(isMulti){
+        ui->scoreButton->setText("单人");
+        ui->multiplayer->raise();
+        ani* an=new ani(ui->multiplayer,"size",ui->multiplayer);
+        an->setDuration(600);
+        an->setEndValue(QSize(1001,231));
+        an->setEasingCurve(QEasingCurve::OutCubic);
+        an->start();
+    }else{
+        ui->scoreButton->setText("多人");
+        ani* an=new ani(ui->multiplayer,"size",ui->multiplayer);
+        an->setDuration(800);
+        an->setEndValue(QSize(0,231));
+        an->setEasingCurve(QEasingCurve::OutCubic);
+        an->start();
+    }
+
+
+}
+
+QByteArray buffer;
+void menu::connect_server(QString name,QString ip,QString room)
+{
+    socket = new QTcpSocket(this);
+    int port=8080;
+    socket->connectToHost(ip,port);
+    connect(socket,&QTcpSocket::connected,this,[=](){//连接成功
+        ui->roomTitle->setText("room: "+ui->room->text());
+        //
+
+        socket->write(send("HEL",name+","+room));//发送身份验证
+
+        //动画
+        ui->multiplayer_2->raise();
+        ani* an=new ani(ui->multiplayer_2,"size",ui->multiplayer_2);
+        an->setDuration(600);
+        an->setEndValue(QSize(1001,231));
+        an->setEasingCurve(QEasingCurve::OutCubic);
+        an->start();
+
+        for(int i=0;i<4;i++){
+            playerGroupBox[i]->raise();
+            playerGroupBox[i]->setVisible(true);
+            playerBg[i]->setVisible(false);
+            playerName[i]->setVisible(false);
+
+        }
+        fadeLabel(ui->aboutButton,400,1,0);
+        fadeLabel(ui->ruleButton,400,1,0);
+        fadeLabel(ui->exitButton,400,1,0);
+        fadeLabel(ui->scoreButton,400,1,0);
+
+    });
+    connect(socket,&QTcpSocket::readyRead,this,[=](){
+        buffer.append(socket->readAll());
+        qDebug()<<"!!!"<<buffer;
+        while(1){
+            if(buffer.size()<3) return;
+            bool ok=false;
+            int len=buffer.mid(0,3).toInt(&ok);
+            if(!ok) return;
+            if(buffer.size()<len) return;
+            QString category=buffer.mid(3,3);
+            QString data=buffer.mid(6,len-6);
+            buffer=buffer.mid(len);
+
+            qDebug()<<category;
+            qDebug()<<data;
+            if(category=="ROM"){//房间信息
+                if(haveStarted) return;
+                QStringList strs=data.split(",");
+                player_num=strs.size();
+                for(int i=0;i<4;i++){
+                    playerGroupBox[i]->raise();
+                    playerGroupBox[i]->setVisible(true);
+
+                    if(i<strs.size()){
+                        if(strs[i]==name){
+                            me=i+1;
+                            qDebug()<<"me"<<me;
+                            if(me==1){//房主
+                                ui->startOnline->raise();
+                                fadeLabel(ui->startOnline,500,0,1);
+                            }
+                        }
+                        playerBg[i]->setVisible(true);
+                        playerName[i]->setVisible(true);
+                        playerName[i]->setText(strs[i]);
+                    }else{
+                        playerBg[i]->setVisible(false);
+                        playerName[i]->setVisible(false);
+                    }
+
+
+                }
+                int locy[4];
+                locy[(me+2)%player_num+1]=2;
+                locy[(me+1)%player_num+1]=1;
+                locy[me%player_num+1]=0;
+                for(int i=1;i<=player_num;i++){
+                    if(i!=me){
+                        pn[locy[i]+1]->setText(strs[i-1]);
+                    }
+                }
+            }else if(category=="SED"){
+                seed=data.toInt();
+                qDebug()<<seed;
+            }else if(category=="STG"){//开始游戏
+                haveStarted=1;
+                ui->handCardBar->setMaximum(max_of_handcard[player_num]);
+
+                initAnimation();
+            }else if(category=="SHW"){//出牌
+                if(me==current_player){
+                    attack();
+                    button_ma(ui->passButton,{710,530},{710,660},600,0,QEasingCurve::OutBack);
+                    button_ma(ui->confirmButton,{710,470},{710,660},600,0,QEasingCurve::OutBack);
+
+                    button_ma(ui->sortButton,{380,587},{380,660},800,0,QEasingCurve::OutBack);
+                    button_ma(ui->sortButton_2,{490,587},{490,660},800,0,QEasingCurve::OutBack);
+
+                }else{
+                    QStringList strs=data.split(",");
+                    for(int i=0;i<strs.size();i++){
+                        for(int j=0;j<handCard[current_player].size();j++){
+                            if(handCard[current_player][j].id==strs[i].toInt()){
+                                showCard.push_back(handCard[current_player][j]);
+
+                            }
+                        }
+                    }
+                    modifyPlayerCard(current_player);
+                    attack();
+                }
+            }else if(category=="DEF"){//出牌
+                if(me==current_player){
+                    df();
+
+                }else{
+                    QStringList strs=data.split(",");
+                    for(int i=0;i<strs.size();i++){
+                        for(int j=0;j<handCard[current_player].size();j++){
+                            if(handCard[current_player][j].id==strs[i].toInt()){
+                                showCard.push_back(handCard[current_player][j]);
+
+                            }
+                        }
+                    }
+                    modifyPlayerCard(current_player);
+                    df();
+                }
+            }else if(category=="GOV"){
+                gov(data.toInt());
+            }else if(category=="RTA"){
+                fadeLabel(ui->gameoverBackground,400,1,0);
+                fadeLabel(ui->gameoverBackground_2,400,1,0);
+                fadeLabel(ui->gameoverTitle,400,1,0);
+                fadeLabel(ui->helpCount,400,1,0);
+                fadeLabel(ui->killCount,400,1,0);
+                fadeLabel(ui->timeCount,400,1,0);
+                fadeLabel(ui->goldenPrice,400,1,0);
+                ui->retryButton->setVisible(false);
+                QTimer::singleShot(500,this,[=](){
+                    setup();
+                });
+            }else if(category=="RTB"){
+                RTB();
+            }
+
+        }
+    });
+
+}
+void menu::on_connect_clicked()//连接到服务器
+{
+    connect_server(ui->name->text(),ui->ip->text(),ui->room->text());
+    ui->connect->setEnabled(false);
+    ui->connect->setText("connecting...");
+}
+
+
+void menu::on_startOnline_clicked()
+{
+    socket->write(send("RDY",""));//准备完成
 }
 
